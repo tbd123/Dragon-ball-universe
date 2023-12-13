@@ -1,0 +1,155 @@
+package dbzbasededatos;
+
+/**
+ *
+ * @author Camilo
+ */
+import javax.swing.*;  //Librerias para interfaz GUI
+import java.awt.*;   //Librerias para interfaz gestion de eventos
+import java.awt.event.ActionEvent; 
+import java.awt.event.ActionListener; 
+import java.sql.Connection; //Librerias para conexion MySql
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+public class DBZBASEDEDATOS {
+
+    private static final String DB_URL = "jdbc:mysql://192.168.80.27/DBZBASEDEDATOS";// INGRESAMOS CONEXION SERVIDOR
+    private static final String DB_USER = "dbzuniverse"; //USUARIO CREado en nuestra base de datos 
+    private static final String DB_PASSWORD = "123456";//contraseña
+
+    public static void main(String[] args) { //cuerpo principal de nuestro codigo
+        SwingUtilities.invokeLater(() -> createAndShowGUI());
+    }
+
+    private static void createAndShowGUI() {// metodo para generar nuestra interfaz
+        
+        JFrame frame = new JFrame("APLICACION GUS - Gestion de usuarios");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(600, 400);
+        frame.setLayout(new BorderLayout());
+        frame.setLocationRelativeTo(null);//realizamos asignacion de frame para nuestra interfaz
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout()); //creamos el botton de usuario
+
+        JButton crearButton = new JButton("Crear");
+        JButton leerButton = new JButton("Consultar");
+        JButton actualizarButton = new JButton("Actualizar");
+        JButton eliminarButton = new JButton("Eliminar");// creamos los botones que usaremos
+
+        buttonPanel.add(crearButton);
+        buttonPanel.add(leerButton);
+        buttonPanel.add(actualizarButton);
+        buttonPanel.add(eliminarButton);//lectura de asignacion para nuestros botones de uso 
+
+        JTextArea outputTextArea = new JTextArea(10, 40);
+        outputTextArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(outputTextArea);//asignacion de texto por 
+
+        frame.add(buttonPanel, BorderLayout.NORTH);
+        frame.add(scrollPane, BorderLayout.CENTER);//orientacion de como se va a mostrar los botones en nuestra pantalla
+
+        frame.setVisible(true); // asiganacion de vidibilidad 
+
+        crearButton.addActionListener(e -> {//realizamos la asignacion que le brindamos a nuestro boton
+            try (Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+                String nombre = JOptionPane.showInputDialog("Nombre: "); //guarda la informacion que nos solicite
+                int kiDePelea = Integer.parseInt(JOptionPane.showInputDialog("Ki de Pelea: "));//guarda la informacion que nos solicite
+                String tecnicaEspecial = JOptionPane.showInputDialog("Técnica Especial: ");//guarda la informacion que nos solicite
+
+                String insertQuery = "INSERT INTO PERSONAJES (nombre_personaje, ki_poderdepelea, tecnica_especial) VALUES (?, ?, ?)";//creacion de nuestros personajes
+                try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
+                    preparedStatement.setString(1, nombre);//mensaje de texto para ingresar informacion solicitada
+                    preparedStatement.setInt(2, kiDePelea);//mensaje de texto para ingresar informacion solicitada
+                    preparedStatement.setString(3, tecnicaEspecial);//mensaje de texto para ingresar informacion solicitada
+
+                    int rowCount = preparedStatement.executeUpdate();
+
+                    if (rowCount > 0) {// generamos un if para informarle al usuario si fueron registrados lo datos con exito o no 
+                        outputTextArea.append("Datos ingresados con éxito.\n");
+                    } else {
+                        outputTextArea.append("Error al ingresar datos.\n");
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                outputTextArea.append("Error de conexión a la base de datos\n");
+            }
+        });
+
+        leerButton.addActionListener(e -> {//cremos nuetra consulta  de datos
+            try (Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+                String selectQuery = "SELECT id, nombre_personaje, ki_poderdepelea, tecnica_especial FROM PERSONAJES";//campos  de datos que consulta
+                try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery);// conexion de consulta
+                     ResultSet resultSet = preparedStatement.executeQuery()) {//nos trae el resultado deseado 
+
+                    outputTextArea.setText("");
+
+                    while (resultSet.next()) {//creamos un mientras que es un while
+                        int id = resultSet.getInt("id");
+                        String nombre = resultSet.getString("nombre_personaje");
+                        int kiDePelea = resultSet.getInt("ki_poderdepelea");
+                        String tecnicaEspecial = resultSet.getString("tecnica_especial");
+                        outputTextArea.append("ID: " + id + ", Nombre: " + nombre + ", Ki de Pelea: " + kiDePelea + ", Técnica Especial: " + tecnicaEspecial + "\n");//realiza la busqueda y  como resultado nos trae la info solicitada
+                    }
+                }
+            } catch (SQLException ex) {//conexion sql por defecto
+                ex.printStackTrace();
+                outputTextArea.append("Error al consultar datos.\n");
+            }
+        });
+
+        actualizarButton.addActionListener(e -> {// metodo de actualizacion de personajes  de nuestra base de datos
+            try (Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {//llamamos nuestra base de datos
+                int id = Integer.parseInt(JOptionPane.showInputDialog("ID del personaje a actualizar: "));//asignacion de datos nuevos
+                String nombre = JOptionPane.showInputDialog("Nuevo Nombre: ");//asignacion de datos nuevos
+                int kiDePelea = Integer.parseInt(JOptionPane.showInputDialog("Nuevo Ki de Pelea: "));//asignacion de datos nuevos
+                String tecnicaEspecial = JOptionPane.showInputDialog("Nueva Técnica Especial: ");//asignacion de datos nuevos
+
+                String updateQuery = "UPDATE PERSONAJES SET nombre_personaje = ?, ki_poderdepelea = ?, tecnica_especial = ? WHERE id = ?";// solicitud de datos a actualizar del personaje requerido
+                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                    preparedStatement.setString(1, nombre);//datos personaje
+                    preparedStatement.setInt(2, kiDePelea);//datos personaje
+                    preparedStatement.setString(3, tecnicaEspecial);//datos personaje
+                    preparedStatement.setInt(4, id);//datos personaje
+
+                    int rowCount = preparedStatement.executeUpdate();
+
+                    if (rowCount > 0) {//if de consulta para usuario si su actualizacion se realizo con exito o no 
+                        outputTextArea.append("Datos actualizados con éxito.\n");
+                    } else {
+                        outputTextArea.append("No se encontró ningún personaje con ese ID.\n");
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                outputTextArea.append("Error al actualizar datos.\n");
+            }
+        });
+
+        eliminarButton.addActionListener(e -> {// metodo de eliminacion d epersonajes
+            try (Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {//llamamos nuestra base de datos
+                int id = Integer.parseInt(JOptionPane.showInputDialog("ID del personaje a eliminar: "));//solicitud a que id se desea eliminar
+
+                String deleteQuery = "DELETE FROM PERSONAJES WHERE id = ?";//opcion de borrar datos
+                try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
+                    preparedStatement.setInt(1, id);//eliminamos datos con el id de personaje
+
+                    int rowCount = preparedStatement.executeUpdate();
+
+                    if (rowCount > 0) {//ejecutamos la eliminacion de nuestro personaje
+                        outputTextArea.append("Datos eliminados con éxito.\n");
+                    } else {//si no fue exitoso mensaje de error
+                        outputTextArea.append("No se encontró ningún personaje con ese ID.\n");
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                outputTextArea.append("Error al eliminar datos.\n");
+            }
+        });
+    }//fin proceso 
+}
